@@ -82,7 +82,22 @@ class Node:
         }
         self._knobs.update(knobs)
         self._class = class_
-        self._inputs: List[Node] = [None] * eval(str(self._knobs.get("inputs")))
+        
+        # Corrected processing for "inputs" knob
+        inputs_value = self._knobs.get("inputs") # This will be the value from file or the default 1
+        num_inputs = 0 # Default to 0 if parsing fails or value is None/malformed
+        if inputs_value is not None:
+            inputs_str = str(inputs_value)
+            try:
+                # Extract the first number from the string (e.g., "2" from "2", "2 inputs 0")
+                num_inputs = int(inputs_str.split()[0])
+            except (ValueError, IndexError):
+                # If parsing fails, num_inputs remains 0.
+                # This handles malformed "inputs" values like an empty string or non-numeric first part.
+                # A warning could be logged here if appropriate for debugging.
+                pass
+        
+        self._inputs: List[Node] = [None] * num_inputs
         self._outputs: List[Node] = []
         self._children: List[Node] = []
         self._parent: Optional[Node] = None
@@ -488,7 +503,7 @@ def _parseNk(file_path: str, gizmos: Optional[dict] = None) -> Node:
             nk_node = Node(class_, knobs)
             class_ = ""
             knobs = {}
-            for index in range(eval(str(nk_node.knob("inputs")))):
+            for index in range(len(nk_node._inputs)):
                 node = main_stack.pop()
 
                 # Add connections.
